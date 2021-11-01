@@ -48,7 +48,7 @@ event LogReceived(uint sku);
   // <modifier: isOwner
 
   modifier verifyCaller (address _address) { 
-    // require (msg.sender == _address); 
+     require (msg.sender == _address); 
     _;
   }
 
@@ -73,13 +73,20 @@ event LogReceived(uint sku);
   // that an Item is for sale. Hint: What item properties will be non-zero when
   // an Item has been added?
 
-  modifier forSale(uint sku) {
-    require (items[sku].state == State.ForSale && items[sku].seller != address(0));
+  modifier forSale(uint _sku) {
+    require (items[_sku].state == State.ForSale && items[_sku].seller != address(0));
     _;
   }
-  // modifier sold(uint _sku) 
-  // modifier shipped(uint _sku) 
-  // modifier received(uint _sku) 
+
+   modifier sold(uint _sku) {
+     require (items[_sku].state == State.Sold);
+     _;
+   }
+
+   modifier shipped(uint _sku) {
+     require (items[_sku].state == State.Shipped);
+     _;
+   }
 
   constructor() public {
     // 1. Set the owner to the transaction sender
@@ -135,7 +142,7 @@ event LogReceived(uint sku);
         items[sku].seller.transfer(items[sku].price);
         items[sku].buyer = msg.sender;
         items[sku].state = State.Sold;
-        emit LogSold(skuCount);
+        emit LogSold(sku);
   }
 
   // 1. Add modifiers to check:
@@ -143,14 +150,20 @@ event LogReceived(uint sku);
   //    - the person calling this function is the seller. 
   // 2. Change the state of the item to shipped. 
   // 3. call the event associated with this function!
-  function shipItem(uint sku) public {}
+  function shipItem(uint sku) public sold(sku) verifyCaller(items[sku].seller) {
+    items[sku].state = State.Shipped;
+    emit  LogShipped(sku);
+  }
 
   // 1. Add modifiers to check 
   //    - the item is shipped already 
   //    - the person calling this function is the buyer. 
   // 2. Change the state of the item to received. 
   // 3. Call the event associated with this function!
-  function receiveItem(uint sku) public {}
+  function receiveItem(uint sku) public  shipped(sku) verifyCaller(items[sku].buyer) {
+    items[sku].state = State.Received;
+    emit  LogReceived(sku);
+  }
 
   // Uncomment the following code block. it is needed to run tests
    function fetchItem(uint _sku) public view  
