@@ -53,16 +53,16 @@ event LogReceived(uint sku);
   }
 
   modifier paidEnough(uint _price) { 
-    // require(msg.value >= _price); 
+     require(msg.value >= _price); 
     _;
   }
 
   modifier checkValue(uint _sku) {
     //refund them after pay for item (why it is before, _ checks for logic before func)
     _;
-    // uint _price = items[_sku].price;
-    // uint amountToRefund = msg.value - _price;
-    // items[_sku].buyer.transfer(amountToRefund);
+     uint _price = items[_sku].price;
+     uint amountToRefund = msg.value - _price;
+     items[_sku].buyer.transfer(amountToRefund);
   }
 
   // For each of the following modifiers, use what you learned about modifiers
@@ -73,7 +73,10 @@ event LogReceived(uint sku);
   // that an Item is for sale. Hint: What item properties will be non-zero when
   // an Item has been added?
 
-  // modifier forSale
+  modifier forSale(uint sku) {
+    require (items[sku].state == State.ForSale && items[sku].seller != address(0));
+    _;
+  }
   // modifier sold(uint _sku) 
   // modifier shipped(uint _sku) 
   // modifier received(uint _sku) 
@@ -95,7 +98,7 @@ event LogReceived(uint sku);
     });
 
     // 2. Increment the skuCount by one
-    skuCount = skuCount + 1;
+    skuCount ++;
     // 3. Emit the appropriate event
     emit LogForSale(skuCount);
     // 4. return true
@@ -127,7 +130,13 @@ event LogReceived(uint sku);
   //    - check the value after the function is called to make 
   //      sure the buyer is refunded any excess ether sent. 
   // 6. call the event associated with this function!
-  function buyItem(uint sku) public {}
+  function buyItem(uint sku) public payable forSale(sku) paidEnough(items[sku].price) checkValue(sku) {
+        //items[sku].seller.call.value(items[sku].price);
+        items[sku].seller.transfer(items[sku].price);
+        items[sku].buyer = msg.sender;
+        items[sku].state = State.Sold;
+        emit LogSold(skuCount);
+  }
 
   // 1. Add modifiers to check:
   //    - the item is sold already 
